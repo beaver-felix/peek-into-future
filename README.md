@@ -83,9 +83,11 @@ if not os.path.exists("/kaggle/working/repo"):
 !python -m pytest tests/ -v
 ```
 
-#### Code Block 3: Prepare Dataset (LibriSpeech)
+#### Code Block 3: Prepare Dataset (LibriSpeech Clean Subset)
+> **Note on Kaggle storage & streaming**: LibriSpeech (`openslr/librispeech_asr`) full dataset is >100GB and does not support streaming on Kaggle. The pipeline uses `snapshot_download` from `huggingface_hub` to download only the `clean` subset (`clean/train.100`, `clean/validation`, `clean/test` ~7GB total, fitting comfortably within Kaggle's 20GB disk limit).
+
 ```python
-# [Cell 3] Download, annotate spaCy NER, build SentencePiece tokenizer & manifests
+# [Cell 3] Snapshot clean subset, annotate spaCy NER, build SentencePiece tokenizer & manifests
 %cd /kaggle/working/repo
 !PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset librispeech
 ```

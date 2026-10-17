@@ -26,8 +26,14 @@ def process_librispeech_split(
     for idx, item in enumerate(tqdm.tqdm(hf_split_dataset)):
         item_id = item.get("id", f"{split_name}_{idx}")
         audio_info = item["audio"]
-        audio_array = audio_info["array"]
-        sr = audio_info["sampling_rate"]
+        if isinstance(audio_info, dict) and "array" in audio_info:
+            audio_array = audio_info["array"]
+            sr = audio_info.get("sampling_rate", 16000)
+        elif isinstance(audio_info, dict) and "bytes" in audio_info and audio_info["bytes"] is not None:
+            import io
+            audio_array, sr = sf.read(io.BytesIO(audio_info["bytes"]))
+        else:
+            raise ValueError(f"Unrecognized audio format in item: {audio_info}")
 
         audio_path = audio_dir / f"{item_id}.wav"
         if not audio_path.exists():

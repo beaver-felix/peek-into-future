@@ -1,29 +1,77 @@
 from pathlib import Path
 from typing import Any
-from datasets import load_dataset
+from huggingface_hub import snapshot_download
+from datasets import load_dataset, Audio
 from peek_future.env import DATA_ROOT, HF_CACHE
+
+CLEAN_SPLIT_MAP = {
+    "validation.clean": "validation",
+    "validation": "validation",
+    "test.clean": "test",
+    "test": "test",
+    "train.clean.100": "train.100",
+    "train.100": "train.100",
+    "train.clean.360": "train.360",
+    "train.360": "train.360",
+}
 
 
 def download_librispeech(splits: list[str] | None = None) -> dict[str, Any]:
-    """Download LibriSpeech splits via HuggingFace datasets."""
+    """Snapshot and load LibriSpeech clean subset via HuggingFace Hub.
+
+    Bypasses whole-dataset download (>100GB) and non-working streaming by
+    snapshotting only parquet files belonging to requested clean splits.
+    """
     if splits is None:
         splits = [
+            "train.clean.100",
             "validation.clean",
-            "validation.other",
             "test.clean",
-            "test.other",
         ]
 
+    # Map requested splits to clean subset folders & patterns
+    patterns = []
+    active_splits = []
+    for s in splits:
+        if s in CLEAN_SPLIT_MAP:
+            folder = CLEAN_SPLIT_MAP[s]
+            patterns.append(f"clean/{folder}/*")
+            active_splits.append((s, folder))
+        else:
+            print(f"Skipping split '{s}': only clean subset supported on Kaggle.")
+
+    if not patterns:
+        patterns = ["clean/validation/*", "clean/test/*"]
+        active_splits = [("validation.clean", "validation"), ("test.clean", "test")]
+
+    snapshot_dir = DATA_ROOT / "librispeech" / "raw_parquet"
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Snapshotting clean subset from openslr/librispeech_asr (patterns: {patterns})...")
+    local_repo = snapshot_download(
+        repo_id="openslr/librispeech_asr",
+        repo_type="dataset",
+        allow_patterns=patterns,
+        local_dir=str(snapshot_dir),
+        resume_download=True,
+    )
+
     dataset_dict = {}
-    for split in splits:
-        print(f"Downloading LibriSpeech split: {split}...")
-        ds = load_dataset(
-            "openslr/librispeech_asr",
-            split=split,
-            cache_dir=str(HF_CACHE),
-            trust_remote_code=True,
-        )
-        dataset_dict[split] = ds
+    for split_key, folder_name in active_splits:
+        split_dir = Path(local_repo) / "clean" / folder_name
+        parquet_files = sorted(str(p) for p in split_dir.glob("*.parquet"))
+        if not parquet_files:
+            print(f"Warning: No parquet files found for {split_key} in {split_dir}")
+            continue
+
+        print(f"Loading {split_key} ({len(parquet_files)} parquet files)...")
+        ds = load_dataset("parquet", data_files=parquet_files, split="train")
+        try:
+            ds = ds.cast_column("audio", Audio(sampling_rate=16000))
+        except Exception as e:
+            print(f"Notice: Audio casting deferred: {e}")
+        dataset_dict[split_key] = ds
+
     return dataset_dict
 
 

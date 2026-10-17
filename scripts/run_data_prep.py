@@ -51,7 +51,7 @@ def main() -> None:
 
     manifest_paths = []
     if args.dataset == "librispeech":
-        splits = args.splits or ["validation.clean", "validation.other", "test.clean", "test.other"]
+        splits = args.splits or ["train.clean.100", "validation.clean", "test.clean"]
         datasets_dict = download_librispeech(splits)
         for split_name, ds in datasets_dict.items():
             m_path = process_librispeech_split(ds, split_name, out_dir, spacy_model=args.spacy_model)

@@ -74,8 +74,25 @@ def main() -> None:
 
     global_entities = load_json(entity_vocab_path) if entity_vocab_path.exists() else []
 
-    train_m = args.train_manifest or str(next(data_dir.glob("*validation*.jsonl"), None))
-    val_m = args.val_manifest or str(next(data_dir.glob("*test*.jsonl"), None))
+    if args.train_manifest:
+        train_m = args.train_manifest
+    else:
+        train_candidates = sorted(list(data_dir.glob("*train*.jsonl")))
+        if train_candidates:
+            train_m = str(train_candidates[0])
+        else:
+            val_fallback = sorted(list(data_dir.glob("*validation*.jsonl")))
+            train_m = str(val_fallback[0]) if val_fallback else None
+
+    if args.val_manifest:
+        val_m = args.val_manifest
+    else:
+        val_candidates = sorted(list(data_dir.glob("*val*.jsonl")))
+        if val_candidates:
+            val_m = str(val_candidates[0])
+        else:
+            test_fallback = sorted(list(data_dir.glob("*test*.jsonl")))
+            val_m = str(test_fallback[0]) if test_fallback else None
 
     if not train_m or not Path(train_m).exists():
         raise FileNotFoundError(f"Train manifest not found: {train_m}")
