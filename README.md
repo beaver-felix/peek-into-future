@@ -62,35 +62,52 @@ uv run python scripts/run_evaluate.py \
 
 ---
 
-### 2. Kaggle (Bash Interface — 2x NVIDIA T4 GPUs)
+### 2. Kaggle (Notebook Code Blocks — 2x NVIDIA T4 GPUs)
 
-Maximize the Kaggle environment (2x T4 GPUs, 32GB combined VRAM, 4 vCPUs):
+Run sequentially in Kaggle notebook code cells (no terminal required). Maximizes 2x T4 GPUs (32GB combined VRAM, 4 vCPUs):
 
-```bash
-# In Kaggle terminal:
-git clone https://github.com/<your-username>/peek-into-future.git /kaggle/working/repo
-cd /kaggle/working/repo
+#### Code Block 1: Clone Repository & Setup Environment
+```python
+# [Cell 1] Clone repo and install dependencies
+import os
+if not os.path.exists("/kaggle/working/repo"):
+    !git clone https://github.com/<your-username>/peek-into-future.git /kaggle/working/repo
+%cd /kaggle/working/repo
+!PEEK_ENV=kaggle python scripts/setup.py
+```
 
-# Install dependencies and download spaCy models
-PEEK_ENV=kaggle python scripts/setup.py
+#### Code Block 2: Verify Test Suite
+```python
+# [Cell 2] Run 10-test unit suite
+%cd /kaggle/working/repo
+!python -m pytest tests/ -v
+```
 
-# Run tests
-python -m pytest tests/ -v
+#### Code Block 3: Prepare Dataset (LibriSpeech)
+```python
+# [Cell 3] Download, annotate spaCy NER, build SentencePiece tokenizer & manifests
+%cd /kaggle/working/repo
+!PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset librispeech
+```
 
-# Prepare dataset (LibriSpeech or VietMed)
-PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset librispeech
-
-# Train BiasingModel on 2x T4 GPUs using Distributed Data Parallel (DDP)
-PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py \
+#### Code Block 4: Train on 2x T4 GPUs (Distributed Data Parallel)
+```python
+# [Cell 4] DDP training across both T4 GPUs with live cell output streaming
+%cd /kaggle/working/repo
+!PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py \
     --model biasing \
     --dataset librispeech \
     --epochs 100 \
     --batch_size 16 \
     --accumulate_grad 2 \
     --num_workers 2
+```
 
-# Evaluate at N=100 with lambda=4.4
-PEEK_ENV=kaggle python scripts/run_evaluate.py \
+#### Code Block 5: Evaluate Checkpoint
+```python
+# [Cell 5] Evaluate at N=100 with lambda=4.4
+%cd /kaggle/working/repo
+!PEEK_ENV=kaggle python scripts/run_evaluate.py \
     --checkpoint /kaggle/working/checkpoints/best_model.pt \
     --manifest /kaggle/working/data/librispeech/test.clean_manifest.jsonl \
     --bias_size 100 \
@@ -106,15 +123,21 @@ PEEK_ENV=kaggle python scripts/run_evaluate.py \
 - **Fused Optimizer**: Fused Adam kernel reduces optimizer CUDA launch overhead.
 - **Clean Model Unwrapping**: Checkpoints are automatically unwrapped from DDP (`model.module`) for single-GPU inference and evaluation.
 
-
 ---
 
-## Downstream: VietMed-NER
+## Downstream: VietMed-NER (Notebook Code Blocks)
 
-```bash
-# Data preparation with Vietnamese NER
-python scripts/run_data_prep.py --dataset vietmed
-
-# Train on VietMed
-python scripts/run_train.py --model biasing --dataset vietmed --epochs 100
+#### Code Block 6: VietMed Data Prep & Training
+```python
+# [Cell 6] Vietnamese medical NER data prep and 2x T4 DDP training
+%cd /kaggle/working/repo
+!PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset vietmed
+!PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py \
+    --model biasing \
+    --dataset vietmed \
+    --epochs 100 \
+    --batch_size 16 \
+    --accumulate_grad 2 \
+    --num_workers 2
 ```
+
