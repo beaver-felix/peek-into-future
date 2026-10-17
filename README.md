@@ -62,7 +62,9 @@ uv run python scripts/run_evaluate.py \
 
 ---
 
-### 2. Kaggle (Bash Interface)
+### 2. Kaggle (Bash Interface — 2x NVIDIA T4 GPUs)
+
+Maximize the Kaggle environment (2x T4 GPUs, 32GB combined VRAM, 4 vCPUs):
 
 ```bash
 # In Kaggle terminal:
@@ -73,27 +75,37 @@ cd /kaggle/working/repo
 PEEK_ENV=kaggle python scripts/setup.py
 
 # Run tests
-python tests/test_model.py
-python tests/test_metrics.py
+python -m pytest tests/ -v
 
 # Prepare dataset (LibriSpeech or VietMed)
 PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset librispeech
 
-# Train BiasingModel on Kaggle GPU
-PEEK_ENV=kaggle python scripts/run_train.py \
+# Train BiasingModel on 2x T4 GPUs using Distributed Data Parallel (DDP)
+PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py \
     --model biasing \
     --dataset librispeech \
     --epochs 100 \
     --batch_size 16 \
-    --device cuda
+    --accumulate_grad 2 \
+    --num_workers 2
 
-# Evaluate
+# Evaluate at N=100 with lambda=4.4
 PEEK_ENV=kaggle python scripts/run_evaluate.py \
     --checkpoint /kaggle/working/checkpoints/best_model.pt \
     --manifest /kaggle/working/data/librispeech/test.clean_manifest.jsonl \
     --bias_size 100 \
     --lambda_val 4.4
 ```
+
+#### 2x T4 Hardware Optimization Architecture:
+- **Distributed Data Parallel (DDP)**: 2 processes via `torchrun --nproc_per_node=2` on NCCL backend across both T4 GPUs.
+- **Micro-Batch Decoupling (`model.no_sync()`)**: Gradient all-reduce is skipped during gradient accumulation steps, eliminating PCIe bus bottlenecks.
+- **VRAM Utilization**: Batch size 16 per GPU $\times$ 2 GPUs $\times$ 2 accumulation steps = global effective batch size 64.
+- **CPU Saturation**: 2 DataLoader workers per GPU (4 workers total) fully utilize Kaggle's 4 vCPUs with `pin_memory=True`, `persistent_workers=True`, and `prefetch_factor=2`.
+- **Turing Tensor Cores**: Autocast FP16 AMP (`dtype=torch.float16`) with dynamic `GradScaler` for maximum T4 tensor core throughput.
+- **Fused Optimizer**: Fused Adam kernel reduces optimizer CUDA launch overhead.
+- **Clean Model Unwrapping**: Checkpoints are automatically unwrapped from DDP (`model.module`) for single-GPU inference and evaluation.
+
 
 ---
 

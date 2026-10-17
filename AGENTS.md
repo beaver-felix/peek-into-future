@@ -13,14 +13,16 @@ The model is an **Attention-Based Encoder-Decoder (AED) ASR system** extended wi
 
 ## Execution environments
 
-| | Local | Kaggle |
+| | Local | Kaggle (2x NVIDIA T4) |
 |---|---|---|
-| Runner | `uv run python scripts/...` | `PEEK_ENV=kaggle python scripts/...` |
-| Device | CPU or CUDA | CUDA (T4 / P100) |
+| Runner | `uv run python scripts/...` | `PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py ...` |
+| Device | CPU or CUDA | 2x CUDA T4 (DDP with NCCL) |
 | Paths | Resolved by `peek_future/env.py` | Same, auto-detected via `Path("/kaggle/working").exists()` |
 | Install | `uv pip install -e .` | `pip install -r requirements.txt` |
+| Parallelism | Single GPU / CPU | DistributedDataParallel (DDP), `model.no_sync()`, 4 vCPU workers |
 
 **Critical rule**: all path resolution must go through `peek_future.env`. No other file may hardcode absolute paths.
+
 
 ---
 
