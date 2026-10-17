@@ -68,7 +68,7 @@ class CLASModel(AEDModel):
             dropout=dropout,
             batch_first=True,
         )
-        self.combine_proj = nn.Linear(d_model + bias_hidden_dim, d_model)
+        self.combine_proj = nn.Linear(2 * d_model, d_model)
 
     def forward(
         self,
