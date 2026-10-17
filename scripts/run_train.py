@@ -197,12 +197,12 @@ def main() -> None:
             find_unused_parameters=False,
         )
 
-    # Fused Adam if CUDA available
     try:
         optimizer = torch.optim.Adam(
             model.parameters(), lr=args.lr, fused=(device.type == "cuda")
         )
-    except Exception:
+    except Exception as exc:
+        log(f"Notice: Fused Adam unavailable ({exc}). Using standard Adam.")
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     total_steps = len(train_loader) * args.epochs

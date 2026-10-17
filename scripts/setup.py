@@ -50,8 +50,8 @@ def main() -> None:
         try:
             spacy.load("en_core_web_trf")
             print("en_core_web_trf already installed.")
-        except Exception:
-            print("Downloading en_core_web_trf...")
+        except Exception as exc:
+            print(f"en_core_web_trf not loaded ({exc}). Downloading en_core_web_trf...")
             run_cmd([sys.executable, "-m", "spacy", "download", "en_core_web_trf"])
     except ImportError:
         print("Warning: spaCy not installed yet.")

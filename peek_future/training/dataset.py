@@ -107,8 +107,8 @@ class ASRBiasingDataset(Dataset):
             if waveform.size(0) > 1:
                 waveform = torch.mean(waveform, dim=0, keepdim=True)
             feat = self.feature_extractor(waveform)  # (T, 80)
-        except Exception:
-            # Fallback dummy features if audio missing/truncated
+        except Exception as exc:
+            print(f"Warning: Failed loading audio from {audio_path} ({exc}), using zeros.")
             feat = torch.zeros((100, 80))
 
         if self.is_training:

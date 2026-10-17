@@ -15,15 +15,22 @@ EXCLUDED_LABELS = {
 def load_spacy_model(model_name: str = "en_core_web_trf") -> spacy.language.Language:
     """Load spaCy model, falling back to en_core_web_sm if trf not found."""
     try:
+        gpu_enabled = spacy.prefer_gpu()
+        if gpu_enabled:
+            print("spaCy initialized with GPU acceleration.")
+    except Exception as exc:
+        print(f"Notice: spaCy GPU activation failed ({exc}), running on CPU.")
+
+    try:
         return spacy.load(model_name)
-    except Exception as e:
-        print(f"Warning: could not load {model_name} ({e}), attempting fallback to en_core_web_sm")
+    except Exception as exc:
+        print(f"Warning: could not load {model_name} ({exc}), attempting fallback to en_core_web_sm")
         try:
             return spacy.load("en_core_web_sm")
-        except Exception:
+        except Exception as fallback_exc:
             raise RuntimeError(
-                f"Neither {model_name} nor en_core_web_sm found. Run: python -m spacy download {model_name}"
-            )
+                f"Neither {model_name} nor en_core_web_sm found ({fallback_exc}). Run: python -m spacy download {model_name}"
+            ) from fallback_exc
 
 
 def extract_entities(
