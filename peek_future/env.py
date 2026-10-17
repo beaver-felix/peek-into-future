@@ -1,3 +1,20 @@
+"""Environment and path resolution for peek-future.
+
+Single source of truth for all filesystem paths. Every other module must import
+paths from here. Never hardcode absolute paths in any other file.
+
+Environment detection (IS_KAGGLE):
+  Checked via PEEK_ENV env var OR presence of /kaggle/working directory.
+  Local: paths rooted at repo directory (peek-into-future/).
+  Kaggle: paths rooted at /kaggle/working/.
+
+Usage:
+  from peek_future.env import DATA_ROOT, CKPT_ROOT, RESULTS_ROOT, HF_CACHE
+  from peek_future.env import load_json, save_json, load_jsonl, save_jsonl
+
+Note: load_dotenv() is a no-op on Kaggle if no .env file is present.
+"""
+
 import os
 from pathlib import Path
 from typing import Any

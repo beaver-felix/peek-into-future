@@ -1,3 +1,25 @@
+"""Multi-Token Prediction (MTP) heads.
+
+Paper §3.1 — Multi-Token Prediction:
+  Instead of predicting only the next token, the decoder simultaneously predicts K
+  future tokens using K independent heads, all operating on the same decoder hidden
+  state h^d_s.
+
+  Each head k applies a specialized transformation g_k (FFN or Transformer block)
+  to h^d_s to produce r^k_s \u2208 R^d, then applies the SHARED LM projection W_o to
+  produce logits l^k_s \u2208 R^V.
+
+  This gives the model "lookahead" capability for entity scoring.
+
+Ablation rows in Table 2:
+  A1: FFNMTPHead   (Linear FFN)      ← paper default
+  A2: TransformerMTPHead             ← worse than A1, included for reproducibility
+
+MTPModule usage:
+  mtp_logits = mtp_module(h_d, model.lm_head)  # (B, S, K, V)
+  The lm_head argument is passed from the parent AEDModel to enforce weight sharing.
+"""
+
 import torch
 import torch.nn as nn
 from typing import Literal

@@ -1,3 +1,24 @@
+"""Training loop and validation evaluation.
+
+train_epoch:
+  Single epoch of training with gradient accumulation and mixed precision (AMP).
+  Performance optimizations:
+    - TF32 compute (torch.backends.cuda.matmul/cudnn.allow_tf32)
+    - cuDNN benchmark mode (torch.backends.cudnn.benchmark)
+    - Non-blocking host-to-device transfers (.to(device, non_blocking=True))
+    - set_to_none=True in optimizer.zero_grad() to avoid zeroing memory bandwidth
+  All optimizations are CUDA-only and no-ops on CPU.
+
+evaluate_validation:
+  Greedy decoding evaluation over a validation DataLoader.
+  Uses BiasingModel.decode_unified() if available, falls back to AEDModel.greedy_decode().
+  Returns dict with keys: wer, b_wer, u_wer, total_words, b_words, u_words.
+
+get_lr_scheduler:
+  Linear warmup (warmup_steps) followed by cosine decay to 0.
+  Paper §4: warmup_steps=5500, total training steps = len(train_loader) * 100 epochs.
+"""
+
 import math
 from pathlib import Path
 import torch
@@ -30,22 +51,29 @@ def train_epoch(
     grad_clip: float = 1.0,
     accumulate_grad: int = 1,
 ) -> dict[str, float]:
-    """Train model for one epoch."""
+    """Train model for one epoch with performance-optimized data transfer and compute."""
     model.train()
     total_loss = 0.0
     total_mtp_loss = 0.0
     total_entity_loss = 0.0
     num_batches = 0
 
-    optimizer.zero_grad()
+    # Enable TF32 and cuDNN benchmark if on CUDA
+    if device.type == "cuda":
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        torch.backends.cudnn.benchmark = True
+
+    optimizer.zero_grad(set_to_none=True)
     pbar = tqdm(dataloader, desc="Training")
 
     for step, batch in enumerate(pbar):
-        x = batch["x"].to(device)
-        x_lengths = batch["x_lengths"].to(device)
-        y = batch["y"].to(device)
-        bias_tokens = batch["bias_tokens"].to(device)
-        tau_labels = batch["tau_labels"].to(device)
+        # Asynchronous non-blocking host-to-device memory copy
+        x = batch["x"].to(device, non_blocking=True)
+        x_lengths = batch["x_lengths"].to(device, non_blocking=True)
+        y = batch["y"].to(device, non_blocking=True)
+        bias_tokens = batch["bias_tokens"].to(device, non_blocking=True)
+        tau_labels = batch["tau_labels"].to(device, non_blocking=True)
 
         use_amp = scaler is not None and device.type == "cuda"
         with torch.cuda.amp.autocast(enabled=use_amp):
@@ -73,7 +101,7 @@ def train_epoch(
                 nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
                 optimizer.step()
 
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
             scheduler.step()
 
         batch_loss = outputs["loss_total"].item()

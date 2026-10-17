@@ -1,3 +1,26 @@
+"""BiasingModel: the full proposed model from arXiv:2512.17657.
+
+Extends AEDModel with:
+  - MTPModule (K=4 FFN heads, shared W_o) for multi-token prediction
+  - EntityScorer (learned f_theta FFN) for entity posterior P_e
+  - Joint training loss: L_total = L_MTP + L_entity
+  - Unified search space decoder Q() at inference
+
+Paper §3.3 Training:
+  L_MTP = weighted sum of K cross-entropy heads (alpha = [1.0, 0.2, 0.1, 0.05])
+  L_entity = cross-entropy over bias list at each step (null entity is class 0)
+
+Paper §3.4 Inference:
+  Q(i in V_static) = P_e(null) * softmax(l^1_s)[i]
+  Q(E_n in E)      = lambda * P_e(E_n)  [if max P_e > gamma, else entity branch disabled]
+  Decoding: argmax Q over joint space. If entity wins, emit all its tokens at once.
+
+Relationship to ablation table:
+  Rows B2, B3 use k_heads=1 and k_heads=2 respectively.
+  Row B0 uses scorer_type='learned' (default).
+  Row B1 uses scorer_type='heuristic'.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

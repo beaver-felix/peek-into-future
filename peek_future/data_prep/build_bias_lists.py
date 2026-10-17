@@ -1,3 +1,22 @@
+"""Bias list construction for training and evaluation.
+
+Training bias list (per sample, random):
+  B = [null] + B+ (ground truth entities) + B_neg (kappa * |B+| random negatives)
+  Created fresh each __getitem__ call for training data augmentation.
+
+Eval bias list (fixed, deterministic):
+  B = [null] + GT entities + random negatives to fill target_size N.
+  Used at N=0, 100, 200, 500 for Table 1 reproduction.
+
+Entity token encoding:
+  entity_to_token_ids: tokenizes entity string, pads/truncates to K tokens.
+  build_null_entity: returns [pad_id] * K (null entity token representation).
+
+Invariant:
+  Index 0 in every bias list is ALWAYS the null entity '<null>'.
+  Enforced here and assumed by EntityScorer and BiasingModel.decode_unified.
+"""
+
 import random
 from typing import Sequence
 import polars as pl

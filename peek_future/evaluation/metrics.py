@@ -1,3 +1,26 @@
+"""Evaluation metrics: WER, Biased WER (B-WER), and Unbiased WER (U-WER).
+
+Follows the evaluation protocol of Le et al. (2021):
+  "Contextualized Streaming End-to-End Speech Recognition with Trie-Based Deep Biasing"
+
+Definitions:
+  B-WER: WER computed only over words that are part of named entities in the reference.
+  U-WER: WER computed only over words that are NOT part of named entities.
+  Overall WER: combined error rate over all words.
+
+Implementation approach for B-WER / U-WER:
+  1. Find every contiguous word span in the reference that matches a named entity string.
+  2. Mark those reference word positions as 'biased'.
+  3. Run Levenshtein alignment between reference and hypothesis.
+  4. For each edit (substitution, deletion, insertion), attribute the error to the
+     biased or unbiased partition based on the aligned reference word's label.
+     Insertions are attributed to the preceding reference word's partition.
+
+Note on entity text matching:
+  Matching is case-insensitive and whitespace-normalized.
+  Entities are matched as contiguous multi-word spans, not individual tokens.
+"""
+
 from typing import Sequence
 import jiwer
 

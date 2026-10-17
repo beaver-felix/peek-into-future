@@ -1,3 +1,18 @@
+"""Conformer Encoder for the Peek-Into-Future AED model.
+
+Implements:
+  - Conv2dSubsampling4: two conv layers giving 4x time-step reduction
+  - PositionalEncoding: sinusoidal, added after subsampling
+  - FeedForwardModule: half-step FFN with SiLU gating (Conformer sandwich)
+  - ConformerConvModule: pointwise-depthwise-pointwise conv block
+  - ConformerBlock: [FFN/2, Self-Attn, Conv, FFN/2, LN]
+  - ConformerEncoder: stacks num_layers ConformerBlocks (paper: 12 layers, d=512)
+
+Paper §4 (Experimental Setup):
+  12 Conformer layers, hidden=512, ff_expansion=4, n_heads=8, conv_kernel=31.
+  Two conv subsampling layers (4x total reduction in time dimension).
+"""
+
 import math
 import torch
 import torch.nn as nn

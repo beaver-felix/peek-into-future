@@ -1,3 +1,28 @@
+"""Entity Scoring module.
+
+Paper §3.2 — Entity Scoring:
+  At each decoding step s, the K MTP logit vectors L_s = [l^1_s, ..., l^K_s] ∈ R^{K x V}
+  are used to construct a per-entity logit vector p_n ∈ R^K for each entity E_n in the
+  bias list:
+
+      p_n = [l^1_s[e_n^1], l^2_s[e_n^2], ..., l^K_s[e_n^K]]
+
+  Where e_n^k is the k-th subword token of entity E_n.
+  Entities shorter than K tokens are right-padded with pad_id.
+  Entities longer than K tokens are truncated to first K tokens.
+
+  A trainable scoring function f_theta: R^K -> R then maps each p_n to a scalar score.
+  z_s = f_theta(p_n) for all n, and P_e = Softmax(z_s) is the entity posterior.
+
+Ablation rows in Table 2:
+  B0: LearnedEntityScorer (2-layer FFN f_theta)  ← paper default
+  B1: HeuristicEntityScorer (weighted sum f)     ← worse than B0
+
+Invariant:
+  bias_list index 0 is ALWAYS the null entity ∅ (all pad tokens).
+  P_e[0] = probability of NO entity at this step, used as gating in Q().
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

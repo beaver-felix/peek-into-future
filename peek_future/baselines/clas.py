@@ -1,3 +1,24 @@
+"""CLAS Baseline: Contextual Listen Attend and Spell (Pundak et al., 2018).
+
+Paper Table 1, row 'CLAS' — a stronger bias baseline than plain AED:
+  - Encodes each entity in the bias list with a 2-layer LSTM BiasEncoder.
+  - Computes dot-product attention from decoder hidden state h_d to bias entity vectors.
+  - Concatenates attended context with h_d, projects back to d_model, adds residually.
+  - Same base encoder/decoder architecture as AEDModel.
+
+Key differences from BiasingModel:
+  - No MTP: does NOT predict future tokens. Bias representations are explicit encodings.
+  - Requires fixed-length subword token sequences for entities at both train and eval time.
+  - Tends to over-bias at large N (see paper results).
+
+BiasEncoder input:
+  bias_tokens: (B, N, L) where L is max entity subword length (character-level for CLAS).
+  Returns context vector via LSTM last hidden state, not via MTP logits.
+
+Note: bias_tokens for CLAS should have length L (full entity subword sequence),
+not K (MTP heads). This is different from BiasingModel's bias_tokens which has shape (B, N, K).
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

@@ -1,3 +1,25 @@
+"""Training dataset for ASR with Contextual Biasing.
+
+ASRBiasingDataset:
+  - Loads NeMo-format JSONL manifests produced by scripts/run_data_prep.py
+  - Computes 80-dim log-Mel filterbanks on-the-fly (window=400, hop=160, n_mels=80)
+  - Applies SpecAugment during training (freq_masks=2, time_masks=1)
+  - Tokenizes text with SPETokenizer (BPE, vocab_size=1024)
+  - Constructs training bias list (random sampling, kappa=2 negatives per positive)
+    or fixed eval bias list (N=100/200/500)
+  - Generates tau_s labels (per-step ground truth entity index for L_entity loss)
+
+tau_s label generation:
+  For each decoding step s (predicting y[s+1] given y[0:s+1]):
+    - If a ground truth entity's subword sequence starts at position s in text_ids,
+      set tau_labels[s] = entity's index in the bias list.
+    - Otherwise tau_labels[s] = 0 (null entity index).
+
+collate_fn:
+  Pads all sequences in a batch to their max length.
+  Returns a dict suitable for direct use in BiasingModel.forward().
+"""
+
 from pathlib import Path
 import random
 import torch

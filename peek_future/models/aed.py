@@ -1,3 +1,17 @@
+"""Baseline Attention-Based Encoder-Decoder (AED) ASR model.
+
+This is Ablation Row A0 in Table 2 of the paper:
+  AED = ConformerEncoder + AttentionDecoder + shared W_o (lm_head).
+
+No multi-token prediction, no entity scoring. Used as baseline for comparison.
+All other models (BiasingModel, CLASModel) inherit from or extend this class.
+
+Shared W_o invariant:
+  self.lm_head is the ONLY Linear(d_model -> V) in the system.
+  MTPModule.forward() receives this layer as an argument so all K heads reuse it.
+  Never create a separate output projection anywhere else.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

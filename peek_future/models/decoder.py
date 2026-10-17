@@ -1,3 +1,17 @@
+"""Autoregressive Attention Decoder for the Peek-Into-Future AED model.
+
+Implements a 6-layer Pre-LayerNorm Transformer decoder with:
+  - Causal self-attention (masked)
+  - Cross-attention over encoder output H_e
+  - Position-wise FFN with GELU
+
+Paper §4: 6 decoder layers, hidden=512, ff_expansion=4, n_heads=8, pre-layer-norm.
+
+Key design: The final LM projection W_o (Linear d_model -> V) is defined in AEDModel,
+not here, so it can be shared with MTP heads. AttentionDecoder returns h_d (hidden states)
+before projection.
+"""
+
 import math
 import torch
 import torch.nn as nn
