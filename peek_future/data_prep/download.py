@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 from huggingface_hub import snapshot_download
-from datasets import load_dataset, Audio
+from datasets import load_dataset
 from peek_future.env import DATA_ROOT, HF_CACHE
 
 CLEAN_SPLIT_MAP = {
@@ -66,10 +66,6 @@ def download_librispeech(splits: list[str] | None = None) -> dict[str, Any]:
 
         print(f"Loading {split_key} ({len(parquet_files)} parquet files)...")
         ds = load_dataset("parquet", data_files=parquet_files, split="train")
-        try:
-            ds = ds.cast_column("audio", Audio(sampling_rate=16000))
-        except Exception as e:
-            print(f"Notice: Audio casting deferred: {e}")
         dataset_dict[split_key] = ds
 
     return dataset_dict
