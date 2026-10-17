@@ -12,7 +12,7 @@ from peek_future.data_prep.annotate_ner_vi import extract_entities_vi
 
 def extract_audio_samples(audio_info: Any) -> tuple[np.ndarray, int]:
     """Extract (audio_array, sampling_rate) supporting AudioDecoder, dict, Tensor, and bytes."""
-    if hasattr(audio_info, "get_all_samples"):
+    if hasattr(audio_info, "get_all_samples") or "AudioDecoder" in type(audio_info).__name__:
         arr = audio_info["array"]
         if isinstance(arr, torch.Tensor):
             arr = arr.cpu().numpy()
