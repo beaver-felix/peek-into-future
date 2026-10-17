@@ -1,0 +1,12 @@
+defaults:
+  - base
+
+environment:
+  name: "kaggle"
+  num_workers: 4
+  pin_memory: true
+  device: "cuda"
+
+training:
+  batch_size: 16
+  accumulate_grad_batches: 2

@@ -1,0 +1,55 @@
+audio:
+  sample_rate: 16000
+  n_mels: 80
+  n_fft: 400
+  win_length: 400
+  hop_length: 160
+  spec_augment:
+    freq_masks: 2
+    freq_width: 27
+    time_masks: 10
+    time_width: 0.05
+
+model:
+  encoder:
+    num_layers: 12
+    d_model: 512
+    n_heads: 8
+    ff_expansion: 4
+    conv_kernel_size: 31
+    dropout: 0.1
+    subsampling_factor: 4
+  decoder:
+    num_layers: 6
+    d_model: 512
+    n_heads: 8
+    ff_expansion: 4
+    dropout: 0.1
+  mtp:
+    k_heads: 4
+    loss_weights: [1.0, 0.2, 0.1, 0.05]
+  entity_scorer:
+    hidden_dim: 64
+    dropout: 0.1
+  tokenizer:
+    vocab_size: 1024
+    model_type: "bpe"
+
+training:
+  epochs: 100
+  batch_size: 16
+  accumulate_grad_batches: 2
+  learning_rate: 1.0e-3
+  warmup_steps: 5500
+  weight_decay: 1.0e-4
+  grad_clip: 1.0
+  amp: true
+  kappa_neg_ratio: 2
+  min_entities_per_sample: 1
+  max_entities_per_sample: 4
+
+inference:
+  default_lambda: 1.0
+  tuned_lambda: 4.4
+  confidence_gamma: 0.3
+  eval_bias_sizes: [0, 100, 200, 500]

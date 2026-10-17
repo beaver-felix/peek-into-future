@@ -1,0 +1,13 @@
+defaults:
+  - base
+
+dataset:
+  name: "librispeech"
+  hf_id: "openslr/librispeech_asr"
+  train_splits: ["train.clean.100", "train.clean.360", "train.other.500"]
+  val_splits: ["validation.clean", "validation.other"]
+  test_splits: ["test.clean", "test.other"]
+  language: "en"
+  ner_spacy_model: "en_core_web_trf"
+  tokenizer_path: "data/librispeech/tokenizer.model"
+  vocab_path: "data/librispeech/entity_vocab.json"

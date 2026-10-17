@@ -1,0 +1,12 @@
+defaults:
+  - base
+
+environment:
+  name: "local"
+  num_workers: 2
+  pin_memory: true
+  device: "cuda" # falls back to cpu if unavailable
+
+training:
+  batch_size: 8
+  accumulate_grad_batches: 4

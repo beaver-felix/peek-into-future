@@ -1,0 +1,12 @@
+defaults:
+  - base
+
+dataset:
+  name: "vietmed"
+  hf_id: "leduckhai/VietMed-NER"
+  train_splits: ["train"]
+  val_splits: ["validation"]
+  test_splits: ["test"]
+  language: "vi"
+  tokenizer_path: "data/vietmed/tokenizer.model"
+  vocab_path: "data/vietmed/entity_vocab.json"
