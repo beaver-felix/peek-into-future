@@ -47,10 +47,17 @@ def main() -> None:
     is_distributed = world_size > 1
 
     if is_distributed:
-        if not dist.is_initialized():
-            dist.init_process_group(backend="nccl")
+        num_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
         local_rank = int(os.environ.get("LOCAL_RANK", "0"))
         rank = int(os.environ.get("RANK", "0"))
+        if local_rank >= num_gpus:
+            raise RuntimeError(
+                f"local_rank={local_rank} >= available CUDA devices ({num_gpus}). "
+                f"torchrun launched {world_size} ranks, but Kaggle session only has {num_gpus} GPU(s). "
+                f"Switch Kaggle Accelerator to 'GPU T4 x 2', or use `--nproc_per_node=gpu` / single GPU."
+            )
+        if not dist.is_initialized():
+            dist.init_process_group(backend="nccl")
         torch.cuda.set_device(local_rank)
         device = torch.device(f"cuda:{local_rank}")
     else:

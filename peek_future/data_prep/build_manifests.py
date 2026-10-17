@@ -29,6 +29,9 @@ def extract_audio_samples(audio_info: Any) -> tuple[np.ndarray, int]:
         if "bytes" in audio_info and audio_info["bytes"] is not None:
             arr, sr = sf.read(io.BytesIO(audio_info["bytes"]))
             return np.asarray(arr, dtype=np.float32), int(sr)
+        if "path" in audio_info and audio_info["path"] is not None and Path(str(audio_info["path"])).exists():
+            arr, sr = sf.read(str(audio_info["path"]))
+            return np.asarray(arr, dtype=np.float32), int(sr)
 
     if isinstance(audio_info, torch.Tensor):
         return audio_info.cpu().numpy().astype(np.float32), 16000
@@ -54,6 +57,13 @@ def process_librispeech_split(
     out_dir.mkdir(parents=True, exist_ok=True)
     audio_dir = out_dir / "audio" / split_name
     audio_dir.mkdir(parents=True, exist_ok=True)
+
+    if hasattr(hf_split_dataset, "cast_column") and "audio" in getattr(hf_split_dataset, "column_names", []):
+        try:
+            import datasets
+            hf_split_dataset = hf_split_dataset.cast_column("audio", datasets.Audio(decode=False))
+        except Exception:
+            pass
 
     nlp = load_spacy_model(spacy_model)
     records = []
@@ -98,6 +108,13 @@ def process_vietmed_split(
     out_dir.mkdir(parents=True, exist_ok=True)
     audio_dir = out_dir / "audio" / split_name
     audio_dir.mkdir(parents=True, exist_ok=True)
+
+    if hasattr(hf_split_dataset, "cast_column") and "audio" in getattr(hf_split_dataset, "column_names", []):
+        try:
+            import datasets
+            hf_split_dataset = hf_split_dataset.cast_column("audio", datasets.Audio(decode=False))
+        except Exception:
+            pass
 
     records = []
     print(f"Processing VietMed {split_name} ({len(hf_split_dataset)} samples)...")

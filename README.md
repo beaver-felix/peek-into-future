@@ -92,11 +92,12 @@ if not os.path.exists("/kaggle/working/repo"):
 !PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset librispeech
 ```
 
-#### Code Block 4: Train on 2x T4 GPUs (Distributed Data Parallel)
+#### Code Block 4: Train on Kaggle GPUs (Distributed Data Parallel or Single GPU)
 ```python
-# [Cell 4] DDP training across both T4 GPUs with live cell output streaming
+# [Cell 4] Training on Kaggle (auto-detects 2x T4 or 1x GPU with --nproc_per_node=gpu)
+# Note: Ensure Kaggle Notebook Settings -> Accelerator is set to 'GPU T4 x 2' for 2-GPU DDP
 %cd /kaggle/working/repo
-!PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py \
+!PEEK_ENV=kaggle torchrun --nproc_per_node=gpu scripts/run_train.py \
     --model biasing \
     --dataset librispeech \
     --epochs 100 \
@@ -131,10 +132,10 @@ if not os.path.exists("/kaggle/working/repo"):
 
 #### Code Block 6: VietMed Data Prep & Training
 ```python
-# [Cell 6] Vietnamese medical NER data prep and 2x T4 DDP training
+# [Cell 6] Vietnamese medical NER data prep and Kaggle GPU training
 %cd /kaggle/working/repo
 !PEEK_ENV=kaggle python scripts/run_data_prep.py --dataset vietmed
-!PEEK_ENV=kaggle torchrun --nproc_per_node=2 scripts/run_train.py \
+!PEEK_ENV=kaggle torchrun --nproc_per_node=gpu scripts/run_train.py \
     --model biasing \
     --dataset vietmed \
     --epochs 100 \

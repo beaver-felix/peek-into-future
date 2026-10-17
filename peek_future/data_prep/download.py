@@ -66,6 +66,9 @@ def download_librispeech(splits: list[str] | None = None) -> dict[str, Any]:
 
         print(f"Loading {split_key} ({len(parquet_files)} parquet files)...")
         ds = load_dataset("parquet", data_files=parquet_files, split="train")
+        if "audio" in ds.column_names:
+            import datasets
+            ds = ds.cast_column("audio", datasets.Audio(decode=False))
         dataset_dict[split_key] = ds
 
     return dataset_dict
@@ -86,6 +89,9 @@ def download_vietmed(splits: list[str] | None = None) -> dict[str, Any]:
                 cache_dir=str(HF_CACHE),
                 trust_remote_code=True,
             )
+            if "audio" in ds.column_names:
+                import datasets
+                ds = ds.cast_column("audio", datasets.Audio(decode=False))
             dataset_dict[split] = ds
         except Exception as e:
             print(f"Note: Could not load split {split} directly: {e}")
