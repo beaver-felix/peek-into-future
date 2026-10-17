@@ -1,6 +1,35 @@
 from typing import Any
 import spacy
 
+
+def _patch_thinc_dlpack() -> None:
+    """Fix deprecation warning: use cupy.from_dlpack array constructor instead of legacy to_dlpack."""
+    try:
+        import thinc.util
+        import thinc.compat
+        import torch.utils.dlpack
+
+        def modern_torch2xp(torch_tensor, *, ops=None):
+            from thinc.api import NumpyOps
+            thinc.util.assert_pytorch_installed()
+            if thinc.util.is_torch_cuda_array(torch_tensor):
+                if isinstance(ops, NumpyOps):
+                    return torch_tensor.detach().cpu().numpy()
+                if thinc.compat.cupy is not None:
+                    # Direct array constructor per DLPack standard
+                    return thinc.compat.cupy.from_dlpack(torch_tensor)
+                return thinc.compat.cupy_from_dlpack(torch.utils.dlpack.to_dlpack(torch_tensor))
+            if isinstance(ops, NumpyOps) or ops is None:
+                return torch_tensor.detach().cpu().numpy()
+            return thinc.compat.cupy.asarray(torch_tensor)
+
+        thinc.util.torch2xp = modern_torch2xp
+    except (ImportError, AttributeError) as exc:
+        print(f"Notice: thinc DLPack patch deferred ({exc})")
+
+
+_patch_thinc_dlpack()
+
 EXCLUDED_LABELS = {
     "CARDINAL",
     "ORDINAL",
